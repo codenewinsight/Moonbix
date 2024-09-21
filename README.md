@@ -3,9 +3,10 @@
 * Join Telegram: https://t.me/scriptsharing
 * Moonbix link: https://t.me/Binance_Moonbix_bot/start?startapp=ref_1416732111&startApp=ref_1416732111
 
-✔️ Auto-play game
-
-✔️ Auto-task code is included but will not be used for now
+-  Auto-play game
+-  Multi Account
+-  Proxy Support
+-  Auto-task code is included but will not be used for now
 
 Reduce the wait time by scrolling down to find
 
