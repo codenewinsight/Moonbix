@@ -1,7 +1,7 @@
 **Share Moonbix Auto Tool Using Node.js (With and Without Proxy)**
 
-# Join Telegram: https://t.me/scriptsharing
-# Moonbix link: https://t.me/Binance_Moonbix_bot/start?startapp=ref_1416732111&startApp=ref_1416732111
+* Join Telegram: https://t.me/scriptsharing
+* Moonbix link: https://t.me/Binance_Moonbix_bot/start?startapp=ref_1416732111&startApp=ref_1416732111
 
 ✔️ Auto-play game
 
@@ -48,4 +48,4 @@ or
 ```bash
 node moonbix-proxy.js
 ```
-# Join Telegram: https://t.me/scriptsharing
+* Join Telegram: https://t.me/scriptsharing
