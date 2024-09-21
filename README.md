@@ -51,4 +51,4 @@ node moonbix-proxy.js
 ```
 * Join Telegram: https://t.me/scriptsharing
 
-@dancayairdrop
+Source: dancayairdrop
