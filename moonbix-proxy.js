@@ -103,6 +103,8 @@ class Binance {
                 "X-Growth-Token": accessToken
             };
 
+            await new Promise(resolve => setTimeout(resolve, 5000));
+
             const userInfoResponse = await axios.post(userInfoUrl, {
                 resourceId: 2056
             }, { headers: userInfoHeaders });
@@ -132,7 +134,9 @@ class Binance {
                 this.log("Game started successfully", 'success');
                 return true;
             }
-    
+            
+            await new Promise(resolve => setTimeout(resolve, 5000));
+
             if (response.data.code === '116002') {
                 this.log("Not enough plays!", 'warning');
             } else {
@@ -152,9 +156,11 @@ class Binance {
             const response = await axios({
                 'method': 'GET',
                 url: 'https://vemid42929.pythonanywhere.com/api/v1/moonbix/play',
-               data: this.game_response
+                data: this.game_response
             });
-    
+            
+            await new Promise(resolve => setTimeout(resolve, 5000));
+
             if (response.data.message === 'success') {
                 this.game = response.data.game;
                 this.log("Game data received successfully", 'success');
@@ -184,9 +190,10 @@ class Binance {
     
             if (response.data.code === '000000' && response.data.success) {
                 this.log(`Game completed successfully | Earned ${this.game.log} points`, 'custom');
+                await new Promise(resolve => setTimeout(resolve, 5000));
                 return true;
             }
-    
+            
             this.log(`Cannot complete the game: ${response.data.message}`, 'error');
             return false;
         } catch (error) {
@@ -245,7 +252,9 @@ class Binance {
             if (response.data.data.type) {
                 this.log(`Successfully completed task ${response.data.data.type}!`, 'success');
             }
-    
+            
+            await new Promise(resolve => setTimeout(resolve, 5000));
+
             return true;
         } catch (error) {
             this.log(`Cannot complete the task: ${error.message}`, 'error');
@@ -269,7 +278,7 @@ class Binance {
                 } else {
                     this.log(`Cannot complete the task: ${resourceId}`, 'warning');
                 }
-                await new Promise(resolve => setTimeout(resolve, 1000));
+                await new Promise(resolve => setTimeout(resolve, 5000));
             }
         }
     }
@@ -351,7 +360,7 @@ class Binance {
                     this.log(`Error processing account ${i + 1}: ${error.message}`, 'error');
                 }
     
-                await new Promise(resolve => setTimeout(resolve, 1000));
+                await new Promise(resolve => setTimeout(resolve, 5000));
             }
     
             await this.countdown(62 * 60);
