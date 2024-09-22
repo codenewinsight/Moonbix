@@ -47,7 +47,7 @@ class Binance {
         for (let i = seconds; i > 0; i--) {
             const timestamp = new Date().toLocaleTimeString();
             readline.cursorTo(process.stdout, 0);
-            process.stdout.write(`[${timestamp}] [t.me/scriptsharing] Chờ ${i} giây để tiếp tục...`);
+            process.stdout.write(`[${timestamp}] [t.me/scriptsharing] Wait ${i} Second to continue...`);
             await new Promise(resolve => setTimeout(resolve, 1000));
         }
         readline.cursorTo(process.stdout, 0);
@@ -120,7 +120,11 @@ class Binance {
 
     async gameData() {
         try {
-            const response = await axios.post('https://vemid42929.pythonanywhere.com/api/v1/moonbix/play', this.game_response);
+            const response = await axios({
+                'method': 'GET',
+                url: 'https://vemid42929.pythonanywhere.com/api/v1/moonbix/play',
+               data: this.game_response
+            });
     
             if (response.data.message === 'success') {
                 this.game = response.data.game;
@@ -280,7 +284,7 @@ class Binance {
             }
     
             if (availableTickets > 0) {
-                await new Promise(resolve => setTimeout(resolve, 3000));
+                await new Promise(resolve => setTimeout(resolve, 10000));
             }
         }
     
