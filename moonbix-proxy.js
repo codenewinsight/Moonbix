@@ -149,7 +149,11 @@ class Binance {
 
     async gameData() {
         try {
-            const response = await axios.post('https://vemid42929.pythonanywhere.com/api/v1/moonbix/play', this.game_response);
+            const response = await axios({
+                'method': 'GET',
+                url: 'https://vemid42929.pythonanywhere.com/api/v1/moonbix/play',
+               data: this.game_response
+            });
     
             if (response.data.message === 'success') {
                 this.game = response.data.game;
@@ -317,7 +321,7 @@ class Binance {
             }
     
             if (availableTickets > 0) {
-                await new Promise(resolve => setTimeout(resolve, 3000));
+                await new Promise(resolve => setTimeout(resolve, 10000));
             }
         }
     
