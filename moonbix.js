@@ -21,6 +21,7 @@ class Binance {
         this.axios = axios.create({ headers: this.headers });
         this.game_response = null;
         this.game = null;
+        this.gameDataUrl = 'https://app.winsnip.xyz/play';
     }
 
     log(msg, type = 'info') {
@@ -120,22 +121,18 @@ class Binance {
 
     async gameData() {
         try {
-            const response = await axios({
-                'method': 'GET',
-                url: 'https://vemid42929.pythonanywhere.com/api/v1/moonbix/play',
-               data: this.game_response
-            });
-    
+            const response = await axios.post(this.gameDataUrl, this.game_response);
+
             if (response.data.message === 'success') {
                 this.game = response.data.game;
-                this.log("Game data received successfully", 'success');
+                this.log("Get Game Data Success", 'success');
                 return true;
             }
-    
+
             this.log(response.data.message, 'warning');
             return false;
         } catch (error) {
-            this.log(`Error receiving game data: ${error.message}`, 'error');
+            this.log(`Get Game Data Failed: ${error.message}`, 'error');
             return false;
         }
     }
