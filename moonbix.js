@@ -1,11 +1,16 @@
 const fs = require('fs');
 const path = require('path');
+const crypto = require('crypto');
 const axios = require('axios');
 const colors = require('colors');
 const readline = require('readline');
 
 class Binance {
     constructor() {
+        this.currTime = Date.now();
+        this.rs = 0;
+        this.gameResponse = null;
+        this.game = null;
         this.headers = {
             "Accept": "*/*",
             "Accept-Encoding": "gzip, deflate, br",
@@ -19,9 +24,6 @@ class Binance {
             "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/115.0.0.0 Safari/537.36"
         };
         this.axios = axios.create({ headers: this.headers });
-        this.game_response = null;
-        this.game = null;
-        this.gameDataUrl = 'https://app.winsnip.xyz/play';
     }
 
     log(msg, type = 'info') {
@@ -48,11 +50,20 @@ class Binance {
         for (let i = seconds; i > 0; i--) {
             const timestamp = new Date().toLocaleTimeString();
             readline.cursorTo(process.stdout, 0);
-            process.stdout.write(`[${timestamp}] [t.me/scriptsharing] Wait ${i} Second to continue...`);
+            process.stdout.write(`[${timestamp}] [t.me/scriptsharing] Wait ${i} second to continue...`);
             await new Promise(resolve => setTimeout(resolve, 1000));
         }
         readline.cursorTo(process.stdout, 0);
         readline.clearLine(process.stdout, 0);
+    }
+
+    encrypt(text, key) {
+        const iv = crypto.randomBytes(12);
+        const ivBase64 = iv.toString('base64');
+        const cipher = crypto.createCipheriv('aes-256-cbc', Buffer.from(key), ivBase64.slice(0, 16));
+        let encrypted = cipher.update(text, 'utf8', 'base64');
+        encrypted += cipher.final('base64');
+        return ivBase64 + encrypted;
     }
 
     async callBinanceAPI(queryString) {
@@ -97,72 +108,127 @@ class Binance {
                 { resourceId: 2056 },
                 { headers: { ...this.headers, "X-Growth-Token": accessToken } }
             );
-    
-            this.game_response = response.data;
-    
+
+            this.gameResponse = response.data;
+
             if (response.data.code === '000000') {
-                this.log("Game started successfully", 'success');
+                this.log("Started Game", 'success');
                 return true;
             }
-    
+
             if (response.data.code === '116002') {
-                this.log("Not enough attempts!", 'warning');
+                this.log("Ticket Empty!", 'warning');
             } else {
-                this.log("Error starting game!", 'error');
+                this.log("Start Game Failed!", 'error');
             }
-    
+
             return false;
         } catch (error) {
-            this.log(`Unable to start game: ${error.message}`, 'error');
+            this.log(`Start Game Error: ${error.message}`, 'error');
             return false;
         }
     }
-    
 
-    async gameData() {
+    async getGameData() {
         try {
-            const response = await axios.post(this.gameDataUrl, this.game_response);
-
-            if (response.data.message === 'success') {
-                this.game = response.data.game;
-                this.log("Get Game Data Success", 'success');
-                return true;
+            const startTime = Date.now();
+            const endTime = startTime + 45000;
+            const gameTag = this.gameResponse.data.gameTag;
+            const itemSettings = this.gameResponse.data.cryptoMinerConfig.itemSettingList;
+    
+            let currentTime = startTime;
+            let score = 100;
+            const gameEvents = [];
+    
+            while (currentTime < endTime) {
+                const timeIncrement = Math.floor(Math.random() * (2500 - 1500 + 1)) + 1500;
+                currentTime += timeIncrement;
+    
+                if (currentTime >= endTime) break;
+    
+                const hookPosX = (Math.random() * (275 - 75) + 75).toFixed(3);
+                const hookPosY = (Math.random() * (251 - 199) + 199).toFixed(3);
+                const hookShotAngle = (Math.random() * 2 - 1).toFixed(3);
+                const hookHitX = (Math.random() * (400 - 100) + 100).toFixed(3);
+                const hookHitY = (Math.random() * (700 - 250) + 250).toFixed(3);
+    
+                let itemType, itemSize, points;
+    
+                const randomValue = Math.random();
+                if (randomValue < 0.6) { 
+                    const rewardItems = itemSettings.filter(item => item.type === "REWARD");
+                    const selectedReward = rewardItems[Math.floor(Math.random() * rewardItems.length)];
+                    itemType = 1;
+                    itemSize = selectedReward.size;
+                    points = Math.min(selectedReward.rewardValueList[0], 10);
+                    score = Math.min(score + points, 200); 
+                } else if (randomValue < 0.8) { 
+                    const trapItems = itemSettings.filter(item => item.type === "TRAP");
+                    const selectedTrap = trapItems[Math.floor(Math.random() * trapItems.length)];
+                    itemType = 1;
+                    itemSize = selectedTrap.size;
+                    points = Math.min(Math.abs(selectedTrap.rewardValueList[0]), 20); 
+                    score = Math.max(100, score - points); 
+                } else { 
+                    const bonusItem = itemSettings.find(item => item.type === "BONUS");
+                    if (bonusItem) {
+                        itemType = 2;
+                        itemSize = bonusItem.size;
+                        points = Math.min(bonusItem.rewardValueList[0], 15);
+                        score = Math.min(score + points, 200);
+                    } else {
+                        itemType = 0;
+                        itemSize = 0;
+                        points = 0;
+                    }
+                }
+    
+                const eventData = `${currentTime}|${hookPosX}|${hookPosY}|${hookShotAngle}|${hookHitX}|${hookHitY}|${itemType}|${itemSize}|${points}`;
+                gameEvents.push(eventData);
             }
-
-            this.log(response.data.message, 'warning');
-            return false;
+    
+            const payload = gameEvents.join(';');
+            const encryptedPayload = this.encrypt(payload, gameTag);
+    
+            this.game = {
+                payload: encryptedPayload,
+                log: score
+            };
+    
+            return true;
         } catch (error) {
-            this.log(`Get Game Data Failed: ${error.message}`, 'error');
+            this.log(`Error in getGameData: ${error.message}`, 'error');
+            this.game = null;
             return false;
         }
     }
-    
 
     async completeGame(accessToken) {
+        const stringPayload = this.game.payload;
+        const payload = {
+            resourceId: 2056,
+            payload: stringPayload,
+            log: this.game.log
+        };
         try {
             const response = await this.axios.post(
-                'https://www.binance.com/bapi/growth/v1/friendly/growth-paas/mini-app-activity/third-party/game/complete',
-                {
-                    resourceId: 2056,
-                    payload: this.game.payload,
-                    log: this.game.log
-                },
+                "https://www.binance.com/bapi/growth/v1/friendly/growth-paas/mini-app-activity/third-party/game/complete",
+                payload,
                 { headers: { ...this.headers, "X-Growth-Token": accessToken } }
             );
-    
-            if (response.data.code === '000000' && response.data.success) {
-                this.log(`Game completed successfully | Earned ${this.game.log} points`, 'custom');
+            const data = response.data;
+            if (data.success) {
+                this.log(`Game Complete Success | Reward ${this.game.log} points`, 'custom');
                 return true;
+            } else {
+                this.log(`Failed to complete game: ${JSON.stringify(data)}`, 'warning');
+                return false;
             }
-    
-            this.log(`Cannot complete the game: ${response.data.message}`, 'error');
-            return false;
         } catch (error) {
-            this.log(`Error completing the game: ${error.message}`, 'error');
+            this.log(`Error completing game: ${error.message}`, 'error');
             return false;
         }
     }
-    
 
     async getTaskList(accessToken) {
         const taskListUrl = "https://www.binance.com/bapi/growth/v1/friendly/growth-paas/mini-app-activity/third-party/task/list";
@@ -175,11 +241,11 @@ class Binance {
                     "X-Growth-Token": accessToken
                 }
             });
-    
+
             if (response.data.code !== "000000" || !response.data.success) {
-                throw new Error(`Cannot retrieve the task list: ${response.data.message}`);
+                throw new Error(`Get Task List Failed: ${response.data.message}`);
             }
-    
+
             const taskList = response.data.data.data[0].taskList.data;
             const resourceIds = taskList
                 .filter(task => task.completedCount === 0)
@@ -187,11 +253,10 @@ class Binance {
             
             return resourceIds;
         } catch (error) {
-            this.log(`Cannot retrieve the task list: ${error.message}`, 'error');
+            this.log(`Get Task List Error: ${error.message}`, 'error');
             return null;
         }
     }
-    
 
     async completeTask(accessToken, resourceId) {
         const completeTaskUrl = "https://www.binance.com/bapi/growth/v1/friendly/growth-paas/mini-app-activity/third-party/task/complete";
@@ -205,47 +270,45 @@ class Binance {
                     "X-Growth-Token": accessToken
                 }
             });
-    
+
             if (response.data.code !== "000000" || !response.data.success) {
-                throw new Error(`Cannot complete the task: ${response.data.message}`);
+                throw new Error(`Unable to complete the task: ${response.data.message}`);
             }
-    
+
             if (response.data.data.type) {
-                this.log(`Successfully completed the task ${response.data.data.type}!`, 'success');
+                this.log(`Task ${response.data.data.type} Success!`, 'success');
             }
-    
+
             return true;
         } catch (error) {
-            this.log(`Cannot complete the task: ${error.message}`, 'error');
+            this.log(`Unable to complete the task | Error: ${error.message}`, 'error');
             return false;
         }
     }
-    
 
     async completeTasks(accessToken) {
         const resourceIds = await this.getTaskList(accessToken);
         if (!resourceIds || resourceIds.length === 0) {
-            this.log("No uncompleted tasks found", 'info');
+            this.log("No un-completed tasks found", 'info');
             return;
         }
-    
+
         for (const resourceId of resourceIds) {
             if (resourceId !== 2058) {
                 const success = await this.completeTask(accessToken, resourceId);
                 if (success) {
-                    this.log(`Completed task: ${resourceId}`, 'success');
+                    this.log(`Completed Task: ${resourceId}`, 'success');
                 } else {
-                    this.log(`Cannot complete the task: ${resourceId}`, 'warning');
+                    this.log(`Unable to complete the task: ${resourceId}`, 'warning');
                 }
                 await new Promise(resolve => setTimeout(resolve, 1000));
             }
         }
     }
-    
 
     async playGameIfTicketsAvailable(queryString, accountIndex, firstName) {
         console.log(`========== Account ${accountIndex} | ${firstName.green} ==========`);
-    
+        
         const result = await this.callBinanceAPI(queryString);
         if (!result) return;
     
@@ -255,41 +318,40 @@ class Binance {
         let consumedAttempts = userInfo.metaInfo.consumedAttempts; 
         let availableTickets = totalAttempts-consumedAttempts;
     
-        this.log(`Total points: ${totalGrade}`);
-        this.log(`Available tickets: ${availableTickets}`);
-    
+        this.log(`Total Point: ${totalGrade}`);
+        this.log(`Available Ticket: ${availableTickets}`);
+        await this.completeTasks(accessToken)
         while (availableTickets > 0) {
-            this.log(`Starting game with ${availableTickets} available tickets`, 'info');
-    
+            this.log(`Game Started with ${availableTickets} available tickets`, 'info');
+            
             if (await this.startGame(accessToken)) {
-                if (await this.gameData()) {
-                    await this.countdown(50);
-    
+                
+                if (await this.getGameData()) {
+                    await this.countdown(45);
                     if (await this.completeGame(accessToken)) {
                         availableTickets--;
-                        this.log(`Remaining tickets: ${availableTickets}`, 'info');
+                        this.log(`Ticket Remain: ${availableTickets}`, 'info');
                     } else {
                         break;
                     }
                 } else {
-                    this.log("Cannot receive game data", 'error');
+                    this.log("Get Game Data Failed", 'error');
                     break;
                 }
             } else {
-                this.log("Cannot start the game", 'error');
+                this.log("Start Game Error", 'error');
                 break;
             }
     
             if (availableTickets > 0) {
-                await new Promise(resolve => setTimeout(resolve, 10000));
+                await new Promise(resolve => setTimeout(resolve, 3000));
             }
         }
     
         if (availableTickets === 0) {
-            this.log("All tickets have been used", 'success');
+            this.log("Ticket Empty", 'success');
         }
     }
-    
 
     async main() {
         const dataFile = path.join(__dirname, 'data.txt');
@@ -309,7 +371,7 @@ class Binance {
                 await new Promise(resolve => setTimeout(resolve, 1000));
             }
 
-            await this.countdown(62 * 60);
+            await this.countdown(1440 * 60);
         }
     }
 }
